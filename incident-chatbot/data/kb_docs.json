@@ -1,0 +1,42 @@
+[
+  {
+    "doc_id": "KB-001",
+    "title": "How to raise an incident via the Incident Clone Portal",
+    "content": "Open the Incident Clone Portal and select 'Report an Incident'. Choose the affected service, severity (P1-P4), and a short summary. If your team has sub-teams configured, use the cascading dropdown to route to the right group; if no sub-team applies, leave it as 'N/A'. Submitting the form automatically creates a Jira ticket, triggers the ART Team Automation Flow for routing, and sends a Teams/email notification to the on-call group. All actions are captured in the audit log for traceability."
+  },
+  {
+    "doc_id": "KB-002",
+    "title": "P1 incident escalation and notification path",
+    "content": "P1 incidents trigger an immediate Teams notification to the on-call channel and an email fallback to the team lead in case the Teams webhook is unavailable. If no acknowledgement is received within 15 minutes, the automation escalates to the secondary on-call engineer. Always verify the destination Teams channel is active, since archived or renamed channels are a common cause of missed P1 alerts."
+  },
+  {
+    "doc_id": "KB-003",
+    "title": "Kubernetes troubleshooting checklist for pod failures",
+    "content": "Start with kubectl get pods to identify status (CrashLoopBackOff, Pending, NotReady). Use kubectl describe pod for events, and kubectl logs (with --previous for crashed containers) for application errors. Common causes: OOMKilled (raise memory limits or fix a leak), failed readiness/liveness probes (check probe path/port), and unsatisfiable scheduling constraints such as pod anti-affinity (check node capacity and taints)."
+  },
+  {
+    "doc_id": "KB-004",
+    "title": "JSM automation rule debugging guide",
+    "content": "When an automation rule doesn't behave as expected, always start with Project Settings > Automation > Audit Log to see whether the rule triggered and where it failed. Common failure points: smart values referencing a custom field not present on the destination project, Send Web Request actions pointing to stale webhook URLs, and trigger conditions (JQL) that don't cover all valid request types. After fixing, re-test with a sample ticket before relying on the rule in production."
+  },
+  {
+    "doc_id": "KB-005",
+    "title": "Requesting a custom field or admin change in JSM",
+    "content": "Engineers without Jira admin access should raise an escalation ticket to the project's designated Atlassian admin, including the exact field name, field type, and target request type or project. Include the automation rule or workflow that depends on the field so the admin can verify mapping end-to-end. Typical turnaround is 1 business day."
+  },
+  {
+    "doc_id": "KB-006",
+    "title": "GitHub Actions CI/CD pipeline: common failure patterns",
+    "content": "Authentication failures at the Docker Hub push step are usually caused by an expired Personal Access Token stored in repository secrets; rotate the token and update the secret. Disk space errors on self-hosted runners are usually resolved by adding a 'docker system prune' cleanup step. Multi-branch pipelines (dev/staging/main) should each have isolated secrets and environment scoping to avoid cross-environment deployment mistakes."
+  },
+  {
+    "doc_id": "KB-007",
+    "title": "Kubernetes Secrets rotation runbook",
+    "content": "After rotating a Kubernetes Secret, pods that consume it as an environment variable will NOT pick up the new value automatically; they require a rolling restart (kubectl rollout restart deployment). Pods that mount the Secret as a volume will pick up changes automatically after a short delay (subject to kubelet sync period), though the application itself may need to reload its config. Always verify successful reconnection after rotation before closing the change."
+  },
+  {
+    "doc_id": "KB-008",
+    "title": "Office network access workarounds for EC2/SSH",
+    "content": "The office network blocks outbound traffic on port 22. Engineers needing Remote-SSH access to EC2 control servers should use Git Bash with an SSH config routed through the approved bastion/tunnel setup, rather than a direct port 22 connection. Contact the infra team if a new control server needs to be added to the approved tunnel configuration."
+  }
+]

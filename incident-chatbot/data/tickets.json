@@ -1,0 +1,355 @@
+[
+  {
+    "key": "HLXSREINP-1042",
+    "summary": "Production EKS pods stuck in CrashLoopBackOff after deployment",
+    "description": "After the latest deployment to the payments namespace, 3 pods entered CrashLoopBackOff. Logs show OOMKilled events. Memory limits appear too low for the new image version.",
+    "category": "Kubernetes / EKS",
+    "priority": "P1",
+    "status": "Resolved",
+    "resolution": "Increased memory requests/limits in the deployment manifest from 256Mi to 512Mi and rolled out a new revision. Root cause was a memory leak introduced in v2.3.1 of the payments service, later patched.",
+    "resolution_steps": [
+      "Check pod events with kubectl describe pod to confirm OOMKilled",
+      "Review recent image/tag changes in the deployment",
+      "Temporarily bump memory limits and re-deploy to restore service",
+      "File a problem ticket against the service owner for the memory leak",
+      "Validate with Prometheus/Grafana memory graphs post-fix"
+    ],
+    "tags": ["kubernetes", "eks", "crashloopbackoff", "oom", "deployment"]
+  },
+  {
+    "key": "HLXSREINP-1055",
+    "summary": "JWT token validation failing intermittently on auth service",
+    "description": "Users reported random 401 errors. Investigation showed clock skew between auth pods causing JWT 'nbf' validation to fail intermittently.",
+    "category": "Application / Auth",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Enabled NTP sync (chrony) on all EKS worker nodes and added a 30s leeway to JWT validation to tolerate minor clock drift.",
+    "resolution_steps": [
+      "Reproduce by checking auth service logs for 'token not yet valid' errors",
+      "Compare system clocks across worker nodes",
+      "Enable/verify NTP (chrony) service on nodes",
+      "Add clock-skew leeway in JWT validation config",
+      "Monitor 401 rate for 24h post-fix"
+    ],
+    "tags": ["jwt", "auth", "401", "clock-skew", "ntp"]
+  },
+  {
+    "key": "HLXSREINP-1061",
+    "summary": "GitHub Actions CI/CD pipeline failing at Docker Hub push step",
+    "description": "The 'main' branch pipeline failed at docker push with 'unauthorized: authentication required'. Personal Access Token used in the workflow secret had expired.",
+    "category": "CI/CD",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Rotated the Docker Hub Personal Access Token, updated the GitHub Actions repository secret DOCKERHUB_TOKEN, and re-ran the pipeline.",
+    "resolution_steps": [
+      "Check workflow logs for the exact auth error",
+      "Confirm token expiry in Docker Hub account settings",
+      "Generate a new Personal Access Token scoped to read/write",
+      "Update the GitHub repo secret",
+      "Re-run the failed workflow"
+    ],
+    "tags": ["github-actions", "docker-hub", "ci-cd", "authentication", "pat"]
+  },
+  {
+    "key": "HLXSREINP-1078",
+    "summary": "Jira Service Management automation rule not creating linked sub-tasks",
+    "description": "The ART Team Automation Flow was not creating sub-tasks for incidents raised via the Incident Clone Portal. Smart value used in the automation referenced a custom field not available on the destination project.",
+    "category": "JSM / Automation",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Corrected the smart value reference to use the shared field, and added a fallback branch in the automation rule for when the field is empty. Escalated to Atlassian admin to align field configuration across projects.",
+    "resolution_steps": [
+      "Open Automation > Audit log to check the failed rule execution",
+      "Identify the smart value or field causing the null reference",
+      "Confirm field availability/mapping across both request types",
+      "Update rule logic and add error-handling branch",
+      "Re-test with a sample ticket before closing"
+    ],
+    "tags": ["jsm", "automation", "smart-values", "sub-tasks", "audit-log"]
+  },
+  {
+    "key": "HLXSREINP-1083",
+    "summary": "Send Web Request action returning 404 in JSM automation",
+    "description": "An automation rule using 'Send Web Request' to notify an external Teams channel returned HTTP 404. Webhook URL had been regenerated after a Teams workspace change.",
+    "category": "JSM / Automation",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Regenerated and updated the Teams incoming webhook URL in the automation rule's Send Web Request action, then validated with a test trigger.",
+    "resolution_steps": [
+      "Reproduce and capture the exact response code/body from the audit log",
+      "Verify the webhook URL is still valid in Teams connector settings",
+      "Update the URL in the automation action",
+      "Trigger a test rule execution",
+      "Confirm delivery in the Teams channel"
+    ],
+    "tags": ["jsm", "automation", "webhook", "teams", "404"]
+  },
+  {
+    "key": "HLXSREINP-1090",
+    "summary": "Cascading dropdown showing empty child field with no way to hide it",
+    "description": "In the Incident Clone Portal request form, the sub-team cascading dropdown shows an empty child selector when a parent team has no configured children, confusing end users.",
+    "category": "JSM / Forms",
+    "priority": "P4",
+    "status": "Open",
+    "resolution": "No fix available yet; this is a known JSM UI limitation. Workaround is to add a placeholder 'N/A' child option for parent teams without sub-teams. Escalated to manager for a permanent fix or Atlassian feature request.",
+    "resolution_steps": [
+      "Confirm which parent teams are affected",
+      "Add an 'N/A' placeholder child value as an interim workaround",
+      "Document the limitation for end users",
+      "Track as a longer-term backlog item with the platform admin"
+    ],
+    "tags": ["jsm", "cascading-dropdown", "forms", "known-issue"]
+  },
+  {
+    "key": "HLXSREINP-1101",
+    "summary": "Prometheus alert: high pod restart count on monitoring namespace",
+    "description": "Grafana dashboard flagged repeated restarts for the kube-prometheus-stack Alertmanager pod after a Helm upgrade.",
+    "category": "Monitoring",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Rolled back the Helm release to the previous chart version due to an incompatible values.yaml schema change, then re-applied the upgrade incrementally with validated config.",
+    "resolution_steps": [
+      "Check kubectl get pods -n monitoring for restart counts",
+      "Review Helm release history: helm history kube-prometheus-stack",
+      "Roll back with helm rollback if a recent upgrade is the cause",
+      "Validate values.yaml against the new chart's schema before retrying",
+      "Confirm dashboards return to green"
+    ],
+    "tags": ["prometheus", "grafana", "helm", "monitoring", "restart"]
+  },
+  {
+    "key": "HLXSREINP-1114",
+    "summary": "Rolling update stuck at 50% availability during EKS deployment",
+    "description": "A deployment rollout for the inventory service stalled with 2 of 4 pods unavailable, due to pod anti-affinity rules unable to be satisfied on the current node group.",
+    "category": "Kubernetes / EKS",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Temporarily scaled the node group to add capacity, then tuned maxUnavailable/maxSurge in the rolling update strategy to reduce pressure on anti-affinity placement.",
+    "resolution_steps": [
+      "kubectl rollout status to confirm the stuck state",
+      "kubectl describe pod for scheduling/anti-affinity failures",
+      "Scale the EKS node group or adjust affinity rules",
+      "Tune maxUnavailable/maxSurge in the deployment strategy",
+      "Re-trigger rollout and confirm 100% availability"
+    ],
+    "tags": ["eks", "rolling-update", "anti-affinity", "deployment", "scaling"]
+  },
+  {
+    "key": "HLXSREINP-1129",
+    "summary": "Kubernetes Secret not being picked up by pod after rotation",
+    "description": "A rotated database credential Secret did not take effect; pods continued using the old credential and failed DB connections.",
+    "category": "Kubernetes / Secrets",
+    "priority": "P1",
+    "status": "Resolved",
+    "resolution": "Secrets mounted as environment variables require a pod restart to pick up new values. Performed a rolling restart of the deployment after Secret rotation and documented this as a required step in the runbook.",
+    "resolution_steps": [
+      "Confirm the Secret was updated: kubectl get secret -o yaml",
+      "Check if the Secret is mounted as env var (requires restart) vs volume (auto-updates)",
+      "Perform kubectl rollout restart deployment",
+      "Verify new DB connections succeed",
+      "Update runbook to include restart step post-rotation"
+    ],
+    "tags": ["kubernetes", "secrets", "credential-rotation", "database"]
+  },
+  {
+    "key": "HLXSREINP-1137",
+    "summary": "VS Code Remote-SSH connection to EC2 control server timing out",
+    "description": "Engineer could not connect via Remote-SSH from the office network; connection timed out on port 22.",
+    "category": "Access / Infra",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Office network blocks outbound port 22. Switched to Git Bash with an SSH config using a non-standard port forwarded through a bastion, and documented the workaround for other engineers on restricted networks.",
+    "resolution_steps": [
+      "Confirm whether port 22 is blocked outbound (telnet test)",
+      "Use an alternate port or SSH-over-HTTPS tunnel if available",
+      "Configure Git Bash / SSH config with the workaround",
+      "Test connection and document the fix for the team"
+    ],
+    "tags": ["ssh", "ec2", "vs-code", "network-restriction", "access"]
+  },
+  {
+    "key": "HLXSREINP-1145",
+    "summary": "Terraform apply fails with 'command not found' on Windows",
+    "description": "terraform apply failed immediately with 'terraform' not recognized as a command, despite the binary being downloaded.",
+    "category": "IaC / Terraform",
+    "priority": "P4",
+    "status": "Resolved",
+    "resolution": "The Terraform binary directory was not added to the Windows PATH environment variable. Added it via System Properties > Environment Variables and confirmed with 'terraform -version' in a new terminal.",
+    "resolution_steps": [
+      "Confirm terraform.exe location on disk",
+      "Add the folder to the Windows PATH system variable",
+      "Open a new terminal session (PATH changes don't apply to open ones)",
+      "Verify with terraform -version"
+    ],
+    "tags": ["terraform", "windows", "path", "setup"]
+  },
+  {
+    "key": "HLXSREINP-1158",
+    "summary": "Incident ticket stuck in 'Waiting for Support' with no automation trigger",
+    "description": "A ticket raised through the Incident Clone Portal did not trigger the ART Team Automation Flow, leaving it unassigned for several hours.",
+    "category": "JSM / Automation",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Root cause was a mismatch between the portal's request type and the automation rule's trigger condition (the rule only fired for one of two valid request types). Broadened the trigger condition to cover both request types.",
+    "resolution_steps": [
+      "Check which request type the ticket was raised under",
+      "Compare against the automation rule's trigger/condition JQL",
+      "Broaden or correct the trigger condition",
+      "Re-test with sample tickets from each request type",
+      "Monitor next 10 incoming tickets for correct routing"
+    ],
+    "tags": ["jsm", "automation", "routing", "request-type", "sla"]
+  },
+  {
+    "key": "HLXSREINP-1163",
+    "summary": "No admin access blocking custom field creation for new request type",
+    "description": "Team needed a new custom field on a request type to support a new automation flow, but the engineer lacked Jira admin permissions to create it.",
+    "category": "JSM / Access",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Raised an escalation ticket to the Atlassian admin (Divij) with the exact field spec and request type. Field was created and linked within 1 business day. Documented the admin escalation process for future field requests.",
+    "resolution_steps": [
+      "Draft the exact field name, type, and target request type",
+      "Raise an escalation ticket to the Atlassian project admin",
+      "Await field creation and confirm mapping to the automation rule",
+      "Test end-to-end before communicating availability to the team"
+    ],
+    "tags": ["jsm", "admin-access", "custom-field", "escalation"]
+  },
+  {
+    "key": "HLXSREINP-1171",
+    "summary": "Docker build fails on GitHub Actions with 'no space left on device'",
+    "description": "The staging pipeline's docker build step failed with disk space errors after several consecutive builds on the same self-hosted runner.",
+    "category": "CI/CD",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Added a 'docker system prune -af' cleanup step at the start of the workflow and enabled build cache pruning to prevent disk exhaustion on the runner.",
+    "resolution_steps": [
+      "Check runner disk usage with df -h",
+      "Identify dangling images/build cache as the cause",
+      "Add a docker system prune step to the workflow",
+      "Re-run the pipeline and confirm successful build",
+      "Add periodic scheduled cleanup for the runner"
+    ],
+    "tags": ["github-actions", "docker", "disk-space", "runner"]
+  },
+  {
+    "key": "HLXSREINP-1184",
+    "summary": "Flask-based internal service returning 500 due to unhandled JWT decode error",
+    "description": "An internal Python Flask microservice crashed requests with HTTP 500 when receiving a malformed JWT, instead of returning a clean 401.",
+    "category": "Application / Auth",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Wrapped the JWT decode call in a try/except for jwt.exceptions.InvalidTokenError and returned a structured 401 response. Added a regression test for malformed tokens.",
+    "resolution_steps": [
+      "Reproduce with a deliberately malformed token",
+      "Check application logs/stack trace for the unhandled exception",
+      "Add exception handling around token decode",
+      "Return appropriate 401 with a clear error body",
+      "Add automated test coverage for this case"
+    ],
+    "tags": ["flask", "jwt", "python", "500-error", "security"]
+  },
+  {
+    "key": "HLXSREINP-1197",
+    "summary": "Multi-container pod: sidecar container failing readiness probe",
+    "description": "A pod with a logging sidecar container was marked NotReady because the sidecar's readiness probe path returned 404, blocking traffic to the healthy main container.",
+    "category": "Kubernetes / EKS",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Corrected the readiness probe path in the sidecar container spec to match the actual health endpoint, and split readiness so the main container's traffic isn't gated by an unrelated sidecar.",
+    "resolution_steps": [
+      "kubectl describe pod to identify which container is failing probes",
+      "Check the configured probe path/port against the container's actual endpoint",
+      "Correct the probe configuration",
+      "Consider decoupling unrelated sidecar health from main traffic readiness",
+      "Confirm pod reaches Ready state"
+    ],
+    "tags": ["kubernetes", "sidecar", "readiness-probe", "multi-container"]
+  },
+  {
+    "key": "HLXSREINP-1205",
+    "summary": "Teams notification not received for P1 incident despite automation success",
+    "description": "Automation audit log showed the rule executed successfully, but the on-call engineer did not receive the Teams alert for a P1 incident.",
+    "category": "JSM / Automation",
+    "priority": "P1",
+    "status": "Resolved",
+    "resolution": "The Teams channel the webhook posted to had been archived after a reorg. Updated the automation to point to the correct active channel and added a secondary email notification as a fallback for P1 incidents.",
+    "resolution_steps": [
+      "Confirm rule execution success in the audit log",
+      "Check destination channel/webhook validity",
+      "Update to the correct active channel",
+      "Add a fallback notification channel for P1 severity",
+      "Send a test P1-severity trigger to confirm delivery"
+    ],
+    "tags": ["jsm", "automation", "notifications", "teams", "p1"]
+  },
+  {
+    "key": "HLXSREINP-1212",
+    "summary": "EC2 instance unreachable after security group change",
+    "description": "A control server became unreachable via SSH after a security group update removed the inbound rule for the office IP range.",
+    "category": "Access / Infra",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Restored the inbound rule for the correct office IP CIDR in the security group, and added a change-management note requiring review before security group edits on shared control servers.",
+    "resolution_steps": [
+      "Confirm reachability failure is network-level (not instance/OS)",
+      "Check recent security group changes in CloudTrail",
+      "Restore or correct the inbound rule",
+      "Test SSH connectivity",
+      "Document a change-review step for future SG edits"
+    ],
+    "tags": ["ec2", "security-group", "ssh", "aws", "access"]
+  },
+  {
+    "key": "HLXSREINP-1221",
+    "summary": "Helm upgrade for kube-prometheus-stack breaks existing Grafana dashboards",
+    "description": "After upgrading the kube-prometheus-stack Helm chart, several custom Grafana dashboards disappeared because they were not stored as ConfigMaps and were lost on pod recreation.",
+    "category": "Monitoring",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Re-created the dashboards and this time provisioned them as ConfigMaps with the grafana_dashboard label so they persist across chart upgrades and pod restarts.",
+    "resolution_steps": [
+      "Confirm dashboards are missing post-upgrade, not just misconfigured",
+      "Check whether dashboards were provisioned via ConfigMap or manually created in-UI",
+      "Re-create dashboards as version-controlled ConfigMaps",
+      "Apply the grafana_dashboard sidecar label for auto-discovery",
+      "Verify persistence after a test pod restart"
+    ],
+    "tags": ["grafana", "helm", "prometheus", "configmap", "dashboards"]
+  },
+  {
+    "key": "HLXSREINP-1233",
+    "summary": "Duplicate incident tickets created for the same outage",
+    "description": "Three separate JSM tickets were raised by different users for the same production outage, causing duplicate on-call paging and confusing status updates.",
+    "category": "Process / Incident Management",
+    "priority": "P3",
+    "status": "Resolved",
+    "resolution": "Linked the duplicate tickets to a single parent incident, closed the duplicates with a reference note, and communicated a single status update thread. Recommended a 'possible duplicate' automation check based on similar summary/category within a time window as a future enhancement.",
+    "resolution_steps": [
+      "Identify all tickets referencing the same outage window/service",
+      "Designate one as the parent incident",
+      "Link/close duplicates with a reference to the parent",
+      "Post one consolidated status update",
+      "Log as a process improvement item for future automation"
+    ],
+    "tags": ["incident-management", "duplicate-tickets", "process", "on-call"]
+  },
+  {
+    "key": "HLXSREINP-1240",
+    "summary": "SLA breach warning for P2 tickets not escalating to team lead",
+    "description": "P2 incidents nearing SLA breach were not triggering the expected escalation notification to the team lead, only to the original assignee.",
+    "category": "JSM / Automation",
+    "priority": "P2",
+    "status": "Resolved",
+    "resolution": "Automation rule's escalation branch referenced the wrong field for 'team lead' lookup. Corrected the field mapping and added an additional test case for SLA breach simulation.",
+    "resolution_steps": [
+      "Reproduce by simulating a near-breach ticket in a test project",
+      "Check audit log for the escalation branch execution",
+      "Correct the team lead field reference",
+      "Re-test with simulated SLA timers",
+      "Confirm escalation notification reaches the team lead"
+    ],
+    "tags": ["jsm", "sla", "escalation", "automation"]
+  }
+]

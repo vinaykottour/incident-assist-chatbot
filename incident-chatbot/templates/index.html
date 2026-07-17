@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Assist — Helix SRE Prototype</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">IA</div>
+      <div class="brand-text">
+        <div class="brand-title">Incident&nbsp;Assist</div>
+        <div class="brand-sub">Helix SRE · Prototype</div>
+      </div>
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat-row"><span class="stat-label">Indexed tickets</span><span class="stat-value" id="stat-tickets">—</span></div>
+      <div class="stat-row"><span class="stat-label">KB articles</span><span class="stat-value" id="stat-docs">—</span></div>
+    </div>
+
+    <div class="sidebar-section-label">Quick questions</div>
+    <div class="suggestions" id="suggestions">
+      <div class="suggestion-skeleton"></div>
+      <div class="suggestion-skeleton"></div>
+      <div class="suggestion-skeleton"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-note">Answers are drawn from historical incident tickets and internal KB docs. Always confirm before acting on a P1/P2.</div>
+    </div>
+  </aside>
+
+  <main class="chat-panel">
+    <div class="chat-header">
+      <div>
+        <div class="chat-title">Ask about an incident</div>
+        <div class="chat-subtitle">Describe the symptom, error message, or paste a ticket summary</div>
+      </div>
+      <div class="mode-badge">Hybrid model · v0.1</div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="msg msg-bot">
+        <div class="msg-avatar bot">IA</div>
+        <div class="msg-bubble">
+          Hi, I'm the Incident Assist prototype. Pick a quick question on the left, or describe an issue below — I'll check historical tickets and KB docs for a match.
+        </div>
+      </div>
+    </div>
+
+    <form class="composer" id="composer">
+      <input
+        type="text"
+        id="query-input"
+        placeholder="e.g. pods stuck in CrashLoopBackOff after deployment"
+        autocomplete="off"
+      />
+      <button type="submit" id="send-btn">Ask</button>
+    </form>
+  </main>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
