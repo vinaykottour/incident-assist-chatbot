@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-assist-service
+  namespace: dev
+spec:
+  type: LoadBalancer
+  selector:
+    app: incident-assist
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
