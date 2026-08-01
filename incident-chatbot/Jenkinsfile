@@ -10,6 +10,16 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                script {
+                    def commitMsg = sh(
+                        script: 'git log -1 --pretty=%B',
+                        returnStdout: true
+                    ).trim()
+                    if (commitMsg.contains('[skip ci]')) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Skipping build — commit made by Jenkins')
+                    }
+                }
                 echo "Building image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
                 echo "Branch: ${env.GIT_BRANCH}"
             }
@@ -67,6 +77,9 @@ pipeline {
         }
         failure {
             echo "Build ${BUILD_NUMBER} failed — check the stage above for the specific error"
+        }
+        unsuccessful {
+            echo "Build ${BUILD_NUMBER} was skipped — Jenkins manifest commit detected"
         }
     }
 }
