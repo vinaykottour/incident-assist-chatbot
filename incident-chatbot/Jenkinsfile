@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "vinaykottour/incident-assist"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo "Building image: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+                echo "Branch: ${env.GIT_BRANCH}"
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
+                sh "docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:dev"
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_IMAGE}:dev"
+                }
+            }
+        }
+
+        stage('Update Kubernetes Manifest') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-creds',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
+                )]) {
+                    sh """
+                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${IMAGE_TAG}|' k8s/deployment.yaml
+                        git config user.email "jenkins@incident-assist"
+                        git config user.name "Jenkins"
+                        git add k8s/deployment.yaml
+                        git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
+                        git push https://${GIT_USER}:${GIT_PASS}@github.com/vinaykottour/incident-assist-chatbot.git dev
+                    """
+                }
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo "Build ${BUILD_NUMBER} succeeded — ${DOCKER_IMAGE}:${IMAGE_TAG} pushed to Docker Hub"
+        }
+        failure {
+            echo "Build ${BUILD_NUMBER} failed — check the stage above for the specific error"
+        }
+    }
+}
