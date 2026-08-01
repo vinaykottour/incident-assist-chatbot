@@ -52,7 +52,7 @@ pipeline {
                             git config user.name "Jenkins"
                             git add k8s/deployment.yaml
                             git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/vinaykottour/incident-assist-chatbot.git dev
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/vinaykottour/incident-assist-chatbot.git HEAD:dev
                         """
                     }
                 }
