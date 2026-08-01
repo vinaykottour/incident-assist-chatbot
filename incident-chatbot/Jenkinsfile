@@ -17,8 +17,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
-                sh "docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:dev"
+                dir('incident-chatbot') {
+                    sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:dev"
+                }
             }
         }
 
@@ -43,14 +45,16 @@ pipeline {
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_PASS'
                 )]) {
-                    sh """
-                        sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${IMAGE_TAG}|' k8s/deployment.yaml
-                        git config user.email "jenkins@incident-assist"
-                        git config user.name "Jenkins"
-                        git add k8s/deployment.yaml
-                        git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
-                        git push https://${GIT_USER}:${GIT_PASS}@github.com/vinaykottour/incident-assist-chatbot.git dev
-                    """
+                    dir('incident-chatbot') {
+                        sh """
+                            sed -i 's|image: ${DOCKER_IMAGE}:.*|image: ${DOCKER_IMAGE}:${IMAGE_TAG}|' k8s/deployment.yaml
+                            git config user.email "jenkins@incident-assist"
+                            git config user.name "Jenkins"
+                            git add k8s/deployment.yaml
+                            git commit -m "Update image tag to ${IMAGE_TAG} [skip ci]"
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/vinaykottour/incident-assist-chatbot.git dev
+                        """
+                    }
                 }
             }
         }
