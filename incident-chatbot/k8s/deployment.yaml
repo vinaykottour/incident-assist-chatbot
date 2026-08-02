@@ -30,7 +30,7 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       containers:
       - name: incident-assist
-        image: vinaykottour/incident-assist:22
+        image: vinaykottour/incident-assist:24
         ports:
         - containerPort: 5000
         resources:
